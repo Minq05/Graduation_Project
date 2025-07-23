@@ -1,4 +1,4 @@
-# Graduation Project - Hướng dẫn gộp dự án
+# Graduation Project - Dự án tốt nghiệp
 
 ## Giới thiệu
 Dự án này gộp 3 repository riêng biệt vào một dự án chung:
@@ -6,7 +6,7 @@ Dự án này gộp 3 repository riêng biệt vào một dự án chung:
 2. Admin Dashboard (Graduation_Project-admin)
 3. Client Application (Graduation_Project-client)
 
-## Cách thực hiện
+## Cách thực hiện gộp dự án
 
 ### Trên Windows
 1. Mở Command Prompt hoặc PowerShell
@@ -32,3 +32,47 @@ Graduation_Project/
 ├── admin/       # Chứa code từ Graduation_Project-admin
 └── client/      # Chứa code từ Graduation_Project-client
 ```
+
+## Thông tin về Backend API
+
+### 📦 Phụ thuộc của dự án
+
+#### 🏗️ **Dependencies** (Thư viện chính)
+
+- **@babel/runtime**: Trợ lý runtime và polyfill cho Babel.
+- **async-exit-hook**: Cho phép đăng ký các hook thoát bất đồng bộ trong Node.js.
+- **bcryptjs**: Thư viện băm mật khẩu.
+- **body-parser**: Middleware phân tích các yêu cầu HTTP đến và gán vào `req.body`.
+- **cookie-parser**: Middleware phân tích header `Cookie` và gán vào `req.cookies`.
+- **cors**: Middleware kích hoạt CORS (Cross-Origin Resource Sharing).
+- **dayjs**: Thư viện nhẹ để xử lý ngày tháng.
+- **dotenv**: Tải các biến môi trường từ tệp `.env` vào `process.env`.
+- **ejs**: Công cụ tạo giao diện HTML bằng cách nhúng JavaScript.
+- **express**: Framework xây dựng ứng dụng web cho Node.js.
+- **express-rate-limit**: Middleware giới hạn các yêu cầu lặp lại tới API công khai.
+- **helmet**: Middleware bảo mật cho Express bằng cách thiết lập các header HTTP.
+- **http-status-codes**: Bộ mã trạng thái HTTP.
+- **joi**: Thư viện mô tả schema và xác thực dữ liệu.
+- **jsonwebtoken**: Thư viện triển khai JSON Web Token (JWT).
+- **lodash**: Thư viện tiện ích cho JavaScript hỗ trợ modularity và hiệu năng.
+- **mongodb**: Trình điều khiển MongoDB cho Node.js.
+- **mongoose**: Công cụ mô hình hóa đối tượng cho MongoDB.
+- **mongoose-delete**: Plugin thêm chức năng xóa mềm (soft delete) cho Mongoose.
+- **morgan**: Middleware ghi log các yêu cầu HTTP.
+- **ms**: Công cụ chuyển đổi đơn vị mili giây.
+- **multer**: Middleware xử lý `multipart/form-data` (chủ yếu dùng để tải tệp lên).
+- **nodemailer**: Thư viện gửi email trong Node.js.
+- **passport**: Middleware xác thực người dùng.
+- **passport-google-oauth20**: Chiến lược xác thực Google OAuth 2.0 cho Passport.
+- **passport-jwt**: Chiến lược xác thực bằng JSON Web Token cho Passport.
+- **passport-local**: Chiến lược xác thực bằng tên người dùng và mật khẩu cho Passport.
+- **qs**: Công cụ phân tích và tạo chuỗi truy vấn (query string).
+- **query-string**: Phân tích và tạo chuỗi truy vấn URL.
+- **slugify**: Chuyển đổi chuỗi thành slug (URL-friendly).
+- **socket.io**: Cho phép giao tiếp hai chiều theo thời gian thực.
+- **swagger-ui-express**: Middleware phục vụ tài liệu API sử dụng Swagger.
+- **uuid**: Tạo mã nhận dạng duy nhất toàn cầu (UUID) đơn giản và nhanh chóng.
+- **validator**: Thư viện kiểm tra và làm sạch chuỗi.
+- **winston**: Trình ghi log cho Node.js.
+
+[Sơ đồ hoạt động Backend](https://www.canva.com/design/DAGiy-k1iaw/7kxCkPGsfWPqTNOZ7hWoww/edit?utm_content=DAGiy-k1iaw&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
