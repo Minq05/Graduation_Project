@@ -76,3 +76,47 @@ Graduation_Project/
 - **winston**: Trình ghi log cho Node.js.
 
 [Sơ đồ hoạt động Backend](https://www.canva.com/design/DAGiy-k1iaw/7kxCkPGsfWPqTNOZ7hWoww/edit?utm_content=DAGiy-k1iaw&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
+
+## Thông tin về Admin Dashboard
+
+### Installed Libraries
+
+#### Frontend Libraries
+- **React Router**: For handling routing in the application.
+- **Axios**: For making HTTP requests to the backend.
+- **Redux**: For state management across the application.
+- **Material-UI**: For pre-designed React components and styling.
+- **React-hook-form**: For building and managing forms.
+- **Joi**: For form validation schema.
+- **Framer-motion**: For animation
+
+### Project Directory Structure
+
+```
+admin/
+├── public/               # Static files like index.html, images, etc.
+├── src/                  # Source code for the client-side application
+│   ├── apis/             # Write apis here
+│   ├── components/       # Reusable React components
+│   ├── pages/            # Page-level components
+│   ├── redux/            # Redux store, actions, and reducers
+│   ├── services/         # API service files (e.g., Axios configurations)
+│   ├── utils/            # Utility functions and helpers
+│   ├── styles/           # Global and component-specific styles
+│   ├── App.js            # Main application component
+│   ├── index.js          # Entry point of the React application
+├── package.json          # Project dependencies and scripts
+```
+
+## Hướng dẫn làm việc với Git
+
+### 🚀 1. Kiểm tra các branch đang có trên github
+```
+  - git fetch
+  - git branch -r
+```
+
+### 🚀 2. Kéo branch cụ thể về máy (thay thế branch-name bằng tên branch)
+```
+  - git checkout -b branch-name origin/branch-name
+```
