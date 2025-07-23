@@ -79,9 +79,7 @@ Graduation_Project/
 
 ## Thông tin về Admin Dashboard
 
-### Installed Libraries
-
-#### Frontend Libraries
+### Frontend Libraries
 - **React Router**: For handling routing in the application.
 - **Axios**: For making HTTP requests to the backend.
 - **Redux**: For state management across the application.
@@ -90,10 +88,39 @@ Graduation_Project/
 - **Joi**: For form validation schema.
 - **Framer-motion**: For animation
 
-### Project Directory Structure
+### Project Directory Structure (Admin)
 
 ```
 admin/
+├── public/               # Static files like index.html, images, etc.
+├── src/                  # Source code for the client-side application
+│   ├── apis/             # Write apis here
+│   ├── components/       # Reusable React components
+│   ├── pages/            # Page-level components
+│   ├── redux/            # Redux store, actions, and reducers
+│   ├── services/         # API service files (e.g., Axios configurations)
+│   ├── utils/            # Utility functions and helpers
+│   ├── styles/           # Global and component-specific styles
+│   ├── App.js            # Main application component
+│   ├── index.js          # Entry point of the React application
+├── package.json          # Project dependencies and scripts
+```
+
+## Thông tin về Client Application
+
+### Frontend Libraries
+- **React Router**: For handling routing in the application.
+- **Axios**: For making HTTP requests to the backend.
+- **Redux**: For state management across the application.
+- **Material-UI**: For pre-designed React components and styling.
+- **React-hook-form**: For building and managing forms.
+- **Joi**: For form validation schema.
+- **Framer-motion**: For animation
+
+### Project Directory Structure (Client)
+
+```
+client/
 ├── public/               # Static files like index.html, images, etc.
 ├── src/                  # Source code for the client-side application
 │   ├── apis/             # Write apis here
@@ -120,3 +147,7 @@ admin/
 ```
   - git checkout -b branch-name origin/branch-name
 ```
+
+## License
+
+This project is licensed under the MIT License.
