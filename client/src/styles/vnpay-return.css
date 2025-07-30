@@ -1,0 +1,22 @@
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.vnpay-spinner {
+  animation: spin 1s linear infinite;
+}
+
+.vnpay-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.vnpay-card {
+  transition: all 0.3s ease;
+}
+
+.vnpay-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
