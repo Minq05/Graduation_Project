@@ -1,9 +1,0 @@
-/* Ẩn thanh cuộn cho tất cả các trình duyệt */
-.overflow-y-auto::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
-}
-
-.overflow-y-auto {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-}
