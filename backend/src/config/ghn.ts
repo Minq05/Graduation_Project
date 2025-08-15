@@ -1,6 +1,3 @@
-/**
- * Giao Hàng Nhanh (GHN) Configuration
- */
 export const GHN_CONFIG = {
   API_URL: 'https://dev-online-gateway.ghn.vn/shiip/public-api',
   TOKEN: '0ebc1f84-5ff5-11f0-9b81-222185cb68c8',
@@ -15,10 +12,10 @@ export const GHN_CONFIG = {
     district_name: 'Quận Cầu Giấy',
     province_name: 'TP Hà Nội'
   },
-  DEFAULT_SERVICE_ID: 53320, // Standard service
-  DEFAULT_SERVICE_TYPE_ID: 2, // Standard service type
+  DEFAULT_SERVICE_ID: 53320,
+  DEFAULT_SERVICE_TYPE_ID: 2,
   DEFAULT_PACKAGE: {
-    weight: 500, // Default 500g
+    weight: 500,
     length: 20,
     width: 20,
     height: 10

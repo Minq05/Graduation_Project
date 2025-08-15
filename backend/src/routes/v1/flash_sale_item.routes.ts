@@ -11,6 +11,9 @@ Router.route('/')
 Router.route('/active')
   .get(flashSaleItemController.fetchActiveFlashSaleItems)
 
+Router.route('/check-limit')
+  .get(flashSaleItemController.checkFlashSaleLimit)
+
 Router.route('/:itemId')
   .get(flashSaleItemController.fetchInfoFlashSaleItem)
   .patch(flashSaleItemController.updateFlashSaleItem)

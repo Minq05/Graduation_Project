@@ -8,6 +8,8 @@ export interface IFlashSaleItem {
   productId: string
   variantId?: string
   discountPercent: number
+  limitQuantity: number
+  soldQuantity?: number
 }
 
 const handleCreateFlashSaleItem = async (data: IFlashSaleItem) => {
@@ -115,6 +117,45 @@ const handleDeleteFlashSaleItem = async (itemId: string) => {
   return { message: 'Xóa flash sale item thành công (soft-delete)' }
 }
 
+const handleCheckFlashSaleLimit = async (productId: string, variantId: string, requestedQuantity: number) => {
+  try {
+    const now = new Date()
+    
+    const flashSaleItem = await FlashSaleItemModel.findOne({
+      productId,
+      variantId,
+      deleted: false
+    }).populate({
+      path: 'flashSaleId',
+      match: {
+        startDate: { $lte: now },
+        endDate: { $gte: now },
+        isActive: true,
+        deleted: false
+      }
+    }).lean()
+    
+    if (!flashSaleItem || !flashSaleItem.flashSaleId) {
+      return { hasFlashSale: false, canPurchase: true, remainingQuantity: 0 }
+    }
+    
+    const remainingQuantity = flashSaleItem.limitQuantity - flashSaleItem.soldQuantity
+    const canPurchase = requestedQuantity <= remainingQuantity
+    
+    return {
+      hasFlashSale: true,
+      canPurchase,
+      remainingQuantity,
+      limitQuantity: flashSaleItem.limitQuantity,
+      soldQuantity: flashSaleItem.soldQuantity,
+      discountPercent: flashSaleItem.discountPercent
+    }
+  } catch (error) {
+    console.error('Error checking flash sale limit:', error)
+    return { hasFlashSale: false, canPurchase: true, remainingQuantity: 0 }
+  }
+}
+
 const handleFetchActiveFlashSaleItems = async () => {
   const now = new Date()
   
@@ -150,7 +191,7 @@ const handleFetchActiveFlashSaleItems = async () => {
     },
     {
       $lookup: {
-        from: 'variants',
+        from: 'product_variants',
         localField: 'variantId',
         foreignField: '_id',
         as: 'variantId'
@@ -185,6 +226,8 @@ const handleFetchActiveFlashSaleItems = async () => {
           }
         },
         discountPercent: 1,
+        limitQuantity: 1,
+        soldQuantity: 1,
         createdAt: 1,
         updatedAt: 1
       }
@@ -200,5 +243,6 @@ export const flashSaleItemService = {
   handleFetchInfoFlashSaleItem,
   handleUpdateFlashSaleItem,
   handleDeleteFlashSaleItem,
-  handleFetchActiveFlashSaleItems
+  handleFetchActiveFlashSaleItems,
+  handleCheckFlashSaleLimit
 }

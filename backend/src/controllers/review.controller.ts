@@ -247,6 +247,44 @@ export const createReview = async (req: Request, res: Response) => {
   }
 }
 
+// Lấy đánh giá công khai cho trang chủ (không cần token)
+export const getPublicReviews = async (req: Request, res: Response) => {
+  try {
+    const { limit = 10, sort = '-createdAt' } = req.query as { limit?: string, sort?: string }
+    const limitNum = parseInt(limit as string, 10) || 10
+    
+    // Chỉ lấy đánh giá đã approved
+    const reviews = await Review.find({ status: 'approved' })
+      .sort({ createdAt: -1 })
+      .limit(limitNum)
+      .populate('userId', 'fullName avatar email')
+      .populate('productId', 'name image')
+      .lean()
+    
+    const total = await Review.countDocuments({ status: 'approved' })
+    
+    res.status(200).json(
+      new ApiResponse(200, {
+        results: reviews,
+        meta: {
+          total,
+          page: 1,
+          limit: limitNum,
+          pages: Math.ceil(total / limitNum)
+        }
+      }, 'Danh sách đánh giá công khai')
+    )
+  } catch (error) {
+    console.error('Error in getPublicReviews:', error)
+    res.status(200).json(
+      new ApiResponse(200, {
+        results: [],
+        meta: { total: 0, page: 1, limit: 10, pages: 0 }
+      }, 'Không có đánh giá nào')
+    )
+  }
+}
+
 // Lấy tất cả đánh giá (có phân trang và lọc)
 export const getAllReviews = async (req: Request, res: Response) => {
   try {

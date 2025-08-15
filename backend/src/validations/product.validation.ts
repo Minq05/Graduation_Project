@@ -157,16 +157,12 @@ const updateProductValidation = async (req: Request, res: Response, next: NextFu
       'string.min': 'Tên sản phẩm tối thiểu 2 ký tự',
       'string.max': 'Tên sản phẩm tối đa 255 ký tự'
     }),
-    slug: Joi.string()
-      .optional()
-      .trim()
-      .min(3)
-      .max(255)
-      .pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-      .messages({
-        'string.empty': 'Slug không được để trống',
-        'string.pattern.base': 'Slug không hợp lệ (chỉ chữ thường, số và dấu gạch ngang)'
-      }),
+    slug: Joi.alternatives().try(
+      Joi.string().allow(''),
+      Joi.string().min(3).max(255).pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    ).optional().messages({
+      'string.pattern.base': 'Slug không hợp lệ (chỉ chữ thường, số và dấu gạch ngang)'
+    }),
     price: Joi.number().optional().min(0).messages({
       'number.base': 'Giá sản phẩm phải là số',
       'number.min': 'Giá sản phẩm không được nhỏ hơn 0'

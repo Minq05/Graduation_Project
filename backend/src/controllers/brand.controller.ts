@@ -150,10 +150,27 @@ const deleteBrand = async (req: Request, res: Response, next: NextFunction) => {
     next(customError)
   }
 }
+
+const getAllBrands = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await brandService.handleGetAllBrands()
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Lấy tất cả brand thành công',
+      data: result
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    next(customError)
+  }
+}
+
 export const brandController = {
   createBrand,
   fetchAllBrand,
   fetchBrandById,
   updateBrand,
-  deleteBrand
+  deleteBrand,
+  getAllBrands
 }

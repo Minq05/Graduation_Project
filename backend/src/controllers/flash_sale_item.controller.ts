@@ -163,11 +163,32 @@ const fetchActiveFlashSaleItems = async (req: Request, res: Response, next: Next
   }
 }
 
+const checkFlashSaleLimit = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { productId, variantId, quantity } = req.query
+    const result = await flashSaleItemService.handleCheckFlashSaleLimit(
+      productId as string, 
+      variantId as string, 
+      parseInt(quantity as string)
+    )
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Kiểm tra giới hạn flash sale thành công!',
+      data: result
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện!'
+    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    next(customError)
+  }
+}
+
 export const flashSaleItemController = {
   createFlashSaleItem,
   fetchAllFlashSaleItems,
   fetchInfoFlashSaleItem,
   updateFlashSaleItem,
   deleteFlashSaleItem,
-  fetchActiveFlashSaleItems
+  fetchActiveFlashSaleItems,
+  checkFlashSaleLimit
 }

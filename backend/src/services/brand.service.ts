@@ -107,10 +107,17 @@ const handleDeleteBrand = async (categoryId: string): Promise<any> => {
   }
   return category
 }
+
+const handleGetAllBrands = async () => {
+  const brands = await BrandModel.find({}).select('_id name slug').lean().exec()
+  return brands
+}
+
 export const brandService = {
   handleCreateBrand,
   handleDeleteBrand,
   handleFetchBrandById,
   handleFetchAllBrand,
-  handleUpdateBrand
+  handleUpdateBrand,
+  handleGetAllBrands
 }

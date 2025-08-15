@@ -27,6 +27,11 @@ export const createFlashSaleItemValidation = async (req: Request, res: Response,
       'number.min': 'discountPercent tối thiểu là 0',
       'number.max': 'discountPercent tối đa là 100',
       'any.required': 'discountPercent là trường bắt buộc'
+    }),
+    limitQuantity: Joi.number().min(1).required().messages({
+      'number.base': 'limitQuantity phải là số',
+      'number.min': 'limitQuantity tối thiểu là 1',
+      'any.required': 'limitQuantity là trường bắt buộc'
     })
   })
   try {
@@ -85,6 +90,10 @@ export const updateFlashSaleItemValidation = async (req: Request, res: Response,
       'number.base': 'discountPercent phải là số',
       'number.min': 'discountPercent tối thiểu là 0',
       'number.max': 'discountPercent tối đa là 100'
+    }),
+    limitQuantity: Joi.number().min(1).optional().messages({
+      'number.base': 'limitQuantity phải là số',
+      'number.min': 'limitQuantity tối thiểu là 1'
     })
   })
   try {

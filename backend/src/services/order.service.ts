@@ -167,8 +167,35 @@ const handleCreateOrder = async (data: CreateOrderDTO) => {
     }))
     const orderItems = await OrderItemModel.insertMany(itemsToInsert, { session })
 
+    // Cập nhật stock và flash sale sold quantity
     for (const it of data.items) {
       await ProductVariantModel.updateOne({ _id: it.variantId }, { $inc: { stock: -it.quantity } }, { session })
+      
+      // Cập nhật số lượng đã bán cho flash sale items
+      const FlashSaleItemModel = require('~/models/flash_sale_item.model').default
+      const now = new Date()
+      
+      const flashSaleItem = await FlashSaleItemModel.findOne({
+        productId: it.productId,
+        variantId: it.variantId,
+        deleted: false
+      }).populate({
+        path: 'flashSaleId',
+        match: {
+          startDate: { $lte: now },
+          endDate: { $gte: now },
+          isActive: true,
+          deleted: false
+        }
+      }).session(session)
+      
+      if (flashSaleItem && flashSaleItem.flashSaleId) {
+        await FlashSaleItemModel.updateOne(
+          { _id: flashSaleItem._id },
+          { $inc: { soldQuantity: it.quantity } },
+          { session }
+        )
+      }
     }
 
     // 6. Commit
@@ -411,9 +438,35 @@ const handleCancelOrder = async (orderId: string, reason:string) => {
     // Lấy tất cả các mục trong đơn hàng
     const orderItems = await OrderItemModel.find({ orderId: order._id }).session(session)
 
-    // Cộng lại số lượng sản phẩm vào kho
+    // Cộng lại số lượng sản phẩm vào kho và trừ lại flash sale sold quantity
     for (const item of orderItems) {
       await ProductVariantModel.updateOne({ _id: item.variantId }, { $inc: { stock: item.quantity } }, { session })
+      
+      // Trừ lại số lượng đã bán cho flash sale items
+      const FlashSaleItemModel = require('~/models/flash_sale_item.model').default
+      const now = new Date()
+      
+      const flashSaleItem = await FlashSaleItemModel.findOne({
+        productId: item.productId,
+        variantId: item.variantId,
+        deleted: false
+      }).populate({
+        path: 'flashSaleId',
+        match: {
+          startDate: { $lte: now },
+          endDate: { $gte: now },
+          isActive: true,
+          deleted: false
+        }
+      }).session(session)
+      
+      if (flashSaleItem && flashSaleItem.flashSaleId) {
+        await FlashSaleItemModel.updateOne(
+          { _id: flashSaleItem._id },
+          { $inc: { soldQuantity: -item.quantity } },
+          { session }
+        )
+      }
     }
 
     // KHÔNG xóa các mục trong đơn hàng nữa

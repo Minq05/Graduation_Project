@@ -8,6 +8,7 @@ const Router = express.Router()
 
 // Route cho người dùng
 Router.route('/').post(verifyToken, reviewValidation.createReviewValidation, reviewController.createReview)
+Router.route('/public').get(reviewController.getPublicReviews)
 Router.route('/product/:productId').get(reviewController.getReviewsByProduct)
 Router.route('/user/:userId').get(verifyToken, reviewController.getReviewsByUser)
 Router.route('/user/:userId/reviewable').get(verifyToken, reviewController.getReviewableProducts)

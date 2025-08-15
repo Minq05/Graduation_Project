@@ -10,12 +10,19 @@ const signupValidation = async (req: Request, res: Response, next: NextFunction)
       'string.empty': 'Email không được để trống',
       'any.required': 'Email là bắt buộc'
     }),
-    password: Joi.string().required().min(6).max(255).trim().messages({
-      'string.empty': 'Mật khẩu không được để trống',
-      'any.required': 'Mật khẩu là bắt buộc',
-      'string.min': 'Mật khẩu phải có ít nhất 6 ký tự',
-      'string.max': 'Mật khẩu không được vượt quá 255 ký tự'
-    })
+    password: Joi.string()
+      .required()
+      .min(6)
+      .max(255)
+      .trim()
+      .pattern(/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{6,}$/)
+      .messages({
+        'string.empty': 'Mật khẩu không được để trống',
+        'any.required': 'Mật khẩu là bắt buộc',
+        'string.min': 'Mật khẩu phải có ít nhất 6 ký tự',
+        'string.max': 'Mật khẩu không được vượt quá 255 ký tự',
+        'string.pattern.base': 'Mật khẩu cần ít nhất 1 chữ hoa, 1 chữ số và 1 ký tự đặc biệt'
+      })
   })
 
   try {

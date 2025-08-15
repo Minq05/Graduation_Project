@@ -17,4 +17,7 @@ Router.route('/:flashSaleId/deactivate').post(flashSaleController.deactivateFlas
 // Route để lấy sản phẩm Flash Sale đang hoạt động
 Router.route('/active-products').get(flashSaleController.getActiveFlashSaleProducts)
 
+// Route để kiểm tra giới hạn flash sale
+Router.route('/check-limit').post(flashSaleController.checkFlashSaleLimit)
+
 export const flashSaleRoute = Router

@@ -1,4 +1,3 @@
-import qs from 'qs'
 import crypto from 'crypto'
 import { vnpayConfig } from '~/config/vnpay'
 
@@ -41,63 +40,63 @@ export const createVnpayPaymentUrl = ({
       .replace(/[-:TZ.]/g, '')
       .slice(0, 14)
 
-  // Sử dụng đúng biến từ config
-  const vnp_Params: Record<string, string> = {
-    vnp_Version: '2.1.0',
-    vnp_Command: 'pay',
-    vnp_TmnCode: vnpayConfig.tmnCode,
-    vnp_Locale: 'vn',
-    vnp_CurrCode: 'VND',
-    vnp_TxnRef: orderId,
-    vnp_OrderInfo: orderInfo.replace(/\s+/g, '_'),
-    vnp_OrderType: 'other',
-    vnp_Amount: (amount * 100).toString(), // Đảm bảo là string
-    vnp_ReturnUrl: vnpayConfig.returnUrl,
-    vnp_IpAddr: ipAddr,
-    vnp_CreateDate: createDate
-  }
+    // Sử dụng đúng biến từ config
+    const vnp_Params: Record<string, string> = {
+      vnp_Version: '2.1.0',
+      vnp_Command: 'pay',
+      vnp_TmnCode: vnpayConfig.tmnCode,
+      vnp_Locale: 'vn',
+      vnp_CurrCode: 'VND',
+      vnp_TxnRef: orderId,
+      vnp_OrderInfo: orderInfo.replace(/\s+/g, '_'),
+      vnp_OrderType: 'other',
+      vnp_Amount: (amount * 100).toString(), // Đảm bảo là string
+      vnp_ReturnUrl: vnpayConfig.returnUrl,
+      vnp_IpAddr: ipAddr,
+      vnp_CreateDate: createDate
+    }
 
-  // Sắp xếp tham số theo alphabet
-  const sortedParams = Object.keys(vnp_Params)
-    .sort()
-    .reduce(
-      (acc, key) => {
-        acc[key] = vnp_Params[key]
-        return acc
-      },
-      {} as Record<string, string>
-    )
+    // Sắp xếp tham số theo alphabet
+    const sortedParams = Object.keys(vnp_Params)
+      .sort()
+      .reduce(
+        (acc, key) => {
+          acc[key] = vnp_Params[key]
+          return acc
+        },
+        {} as Record<string, string>
+      )
 
-  // Tạo chuỗi ký theo chuẩn VNPAY - encode URL trong chuỗi ký
-  const signData = Object.keys(sortedParams)
-    .map(key => `${key}=${encodeURIComponent(sortedParams[key])}`)
-    .join('&')
+    // Tạo chuỗi ký theo chuẩn VNPAY - encode URL trong chuỗi ký
+    const signData = Object.keys(sortedParams)
+      .map((key) => `${key}=${encodeURIComponent(sortedParams[key])}`)
+      .join('&')
 
-  console.log('Sign Data:', signData)
-  console.log('Hash Secret:', vnpayConfig.hashSecret)
+    console.log('Sign Data:', signData)
+    console.log('Hash Secret:', vnpayConfig.hashSecret)
 
-  // Tạo secure hash
-  const secureHash = crypto.createHmac('sha512', vnpayConfig.hashSecret).update(signData).digest('hex')
+    // Tạo secure hash
+    const secureHash = crypto.createHmac('sha512', vnpayConfig.hashSecret).update(signData).digest('hex')
 
-  console.log('Generated Hash:', secureHash)
+    console.log('Generated Hash:', secureHash)
 
-  // Thêm secure hash vào params (KHÔNG thêm vào chuỗi ký)
-  sortedParams['vnp_SecureHash'] = secureHash
+    // Thêm secure hash vào params
+    sortedParams['vnp_SecureHash'] = secureHash
 
-  // Tạo URL với encode chính xác
-  const queryString = Object.keys(sortedParams)
-    .map(key => `${key}=${encodeURIComponent(sortedParams[key])}`)
-    .join('&')
+    // Tạo URL với encode chính xác
+    const queryString = Object.keys(sortedParams)
+      .map((key) => `${key}=${encodeURIComponent(sortedParams[key])}`)
+      .join('&')
 
-  const paymentUrl = `${vnpayConfig.url}?${queryString}`
-  
-  console.log('Final payment URL:', paymentUrl)
-  
-  if (!paymentUrl || !paymentUrl.includes('vnp_SecureHash')) {
-    throw new Error('Không thể tạo URL thanh toán hợp lệ')
-  }
-  
-  return paymentUrl
+    const paymentUrl = `${vnpayConfig.url}?${queryString}`
+
+    console.log('Final payment URL:', paymentUrl)
+
+    if (!paymentUrl || !paymentUrl.includes('vnp_SecureHash')) {
+      throw new Error('Không thể tạo URL thanh toán hợp lệ')
+    }
+
+    return paymentUrl
   } catch (error) {
     console.error('Error creating VNPay payment URL:', error)
     throw error
@@ -118,7 +117,6 @@ export const verifyVnpayReturn = (vnpayParams: any) => {
     .reduce(
       (acc, key) => {
         if (paramsCopy[key] !== '' && paramsCopy[key] !== null && paramsCopy[key] !== undefined) {
-          // Decode URL cho các giá trị
           acc[key] = decodeURIComponent(paramsCopy[key])
         }
         return acc

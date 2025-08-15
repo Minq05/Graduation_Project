@@ -146,7 +146,7 @@ const handleFetchAllProduct = async ({
   const results = await ProductModel.find(filter)
     .skip(offset)
     .limit(defaultLimit)
-    .sort(sort as any)
+    .sort(sort && Object.keys(sort).length > 0 ? sort as any : { createdAt: -1 })
     .populate({ path: 'categoryId', model: 'Category', select: 'name' })
     .populate({ path: 'brandId', model: 'Brand', select: 'name' })
     .populate({

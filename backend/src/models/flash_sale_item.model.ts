@@ -6,6 +6,8 @@ export interface IFlashSaleItem extends SoftDeleteDocument {
   productId: Types.ObjectId
   variantId?: Types.ObjectId
   discountPercent: number
+  limitQuantity: number
+  soldQuantity: number
 }
 
 const FlashSaleItemSchema: Schema<IFlashSaleItem> = new mongoose.Schema(
@@ -13,7 +15,9 @@ const FlashSaleItemSchema: Schema<IFlashSaleItem> = new mongoose.Schema(
     flashSaleId: { type: Schema.Types.ObjectId, ref: 'flash_sales', required: true },
     productId: { type: Schema.Types.ObjectId, ref: 'products', required: true },
     variantId: { type: Schema.Types.ObjectId, ref: 'product_variants', required: false },
-    discountPercent: { type: Number, required: true }
+    discountPercent: { type: Number, required: true },
+    limitQuantity: { type: Number, required: true, min: 1 },
+    soldQuantity: { type: Number, default: 0, min: 0 }
   },
   {
     timestamps: true,
