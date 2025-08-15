@@ -119,11 +119,6 @@ const items: MenuProps['items'] = [
         icon: <ControlOutlined />,
         label: <Link to={'/roles'}>Vai trò</Link>
       },
-      {
-        key: '/permissions',
-        icon: <InsertRowRightOutlined />,
-        label: <Link to={'/permissions'}>Quyền hạn</Link>
-      },
     ]
   },
   {

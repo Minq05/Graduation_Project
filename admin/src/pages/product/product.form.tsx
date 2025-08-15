@@ -19,7 +19,7 @@ import { convertSlugUrl } from "@/utils/utils"
 import { useQuery } from "@tanstack/react-query"
 import { fetchAllCategories } from "@/services/category-service/category.apis"
 import { CATEGORY_QUERY_KEYS } from "@/services/category-service/category.key"
-import { fetchAllBrandsAPI } from "@/services/brand-service/brand.apis"
+import { getAllBrandsAPI } from "@/services/brand-service/brand.apis"
 import { BRAND_QUERY_KEYS } from "@/services/brand-service/brand.keys"
 import { ATTRIBUTE_QUERY_KEYS } from "@/services/product-service/product.key"
 import { fetchAllAttributes } from "@/services/product-service/attributes.apis"
@@ -59,9 +59,9 @@ const ProductForm = (props: IProps) => {
   const { data: listBrands } = useQuery({
     queryKey: [BRAND_QUERY_KEYS.FETCH_ALL],
     queryFn: async () => {
-      const res = await fetchAllBrandsAPI()
+      const res = await getAllBrandsAPI()
       if (res && res.data) {
-        return res.data.results
+        return res.data
       } else {
         message.error("Không thể lấy danh sách thương hiệu")
         return []

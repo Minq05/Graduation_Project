@@ -32,6 +32,8 @@ export interface IFlashSaleItem {
     stock: number
   } | string
   discountPercent: number
+  limitQuantity: number
+  soldQuantity: number
   createdAt?: string
   updatedAt?: string
 }

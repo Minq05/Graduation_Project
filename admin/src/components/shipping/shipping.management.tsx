@@ -6,8 +6,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createShippingOrderAPI, getShippingStatusAPI, cancelShippingOrderAPI, updateShippingStatusAPI } from '@/services/shipping-service/shipping.apis';
 
 const { Title, Text } = Typography;
-
-// Mapping for shipping status colors
 const statusColors: Record<string, string> = {
   'ready_to_pick': 'blue',
   'picking': 'cyan',
@@ -21,8 +19,6 @@ const statusColors: Record<string, string> = {
   'cancel': 'magenta',
   'exception': 'error',
 };
-
-// Mapping for shipping status names in Vietnamese
 const statusNames: Record<string, string> = {
   'ready_to_pick': 'Chờ lấy hàng',
   'picking': 'Đang lấy hàng',
@@ -83,8 +79,6 @@ const ShippingManagement: React.FC = () => {
     if (!orders || orders.length === 0) return;
     
     try {
-      // Lấy tất cả đơn hàng có mã vận đơn
-      // Chỉ lấy các đơn hàng chưa hoàn thành hoặc chưa hủy
       const ordersWithShipping = orders.filter(order => 
         order.shipping?.orderCode && 
         order.shipping?.statusCode !== 'delivered' && 
@@ -94,7 +88,7 @@ const ShippingManagement: React.FC = () => {
       
       console.log(`Đang cập nhật trạng thái cho ${ordersWithShipping.length} đơn hàng`);
       
-      // Nếu không có đơn hàng nào cần cập nhật, thoát sớm
+      // Nếu không có đơn hàng nào cần cập nhật
       if (ordersWithShipping.length === 0) {
         setLastRefreshTime(new Date().toLocaleTimeString());
         return;
@@ -425,7 +419,6 @@ const ShippingManagement: React.FC = () => {
         if (!status) {
           return <span>Chưa có trạng thái</span>;
         }
-        
         // Hiển thị trạng thái vận chuyển bình thường
         const color = statusColors[status] || 'default';
         // Ưu tiên sử dụng statusName từ API, nếu không có thì dùng từ mapping
@@ -500,7 +493,7 @@ const ShippingManagement: React.FC = () => {
             <Title level={4}>Quản lý vận chuyển</Title>
             <div style={{ fontSize: '12px', color: '#888' }}>
               {lastRefreshTime ? `Cập nhật lần cuối: ${lastRefreshTime}` : ''}
-              {autoRefresh && <span> (Tự động cập nhật mỗi 5 phút)</span>}
+              {autoRefresh && <span> (Tự động cập nhật)</span>}
             </div>
           </div>
           <div>
@@ -569,9 +562,6 @@ const ShippingManagement: React.FC = () => {
               <Descriptions.Item label="Thời gian dự kiến">
                 {selectedOrder.shipping?.expectedDeliveryTime || 'Chưa xác định'}
               </Descriptions.Item>
-              <Descriptions.Item label="Phí vận chuyển">
-                {selectedOrder.shipping?.fee?.toLocaleString('vi-VN')}đ
-              </Descriptions.Item>
               <Descriptions.Item label="Tổng tiền đơn hàng">
                 {selectedOrder.totalPrice?.toLocaleString('vi-VN')}đ
               </Descriptions.Item>
@@ -596,32 +586,6 @@ const ShippingManagement: React.FC = () => {
             </Descriptions>
           </div>
         )}
-      </Modal>
-
-      {/* Cancel Shipping Modal */}
-      <Modal
-        title="Hủy vận đơn"
-        open={cancelModalVisible}
-        onCancel={() => setCancelModalVisible(false)}
-        onOk={handleCancelShipping}
-        okText="Xác nhận hủy"
-        cancelText="Đóng"
-        confirmLoading={cancelShippingMutation.isPending}
-      >
-        <p>Bạn có chắc chắn muốn hủy vận đơn này?</p>
-        <p>Mã đơn hàng: {selectedOrder?._id}</p>
-        <p>Mã vận đơn GHN: {selectedOrder?.shipping?.orderCode}</p>
-        
-        <div style={{ marginTop: 16 }}>
-          <Text strong>Lý do hủy:</Text>
-          <textarea
-            style={{ width: '100%', padding: 8, marginTop: 8, borderRadius: 4, border: '1px solid #d9d9d9' }}
-            rows={3}
-            value={cancelReason}
-            onChange={(e) => setCancelReason(e.target.value)}
-            placeholder="Nhập lý do hủy vận đơn"
-          />
-        </div>
       </Modal>
       
       {/* Update Status Modal */}

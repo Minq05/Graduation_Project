@@ -117,7 +117,8 @@ const FlashSaleItemsModal = ({ open, onCancel, flashSaleId }: FlashSaleItemsModa
         form.setFieldsValue({
           productId: productId,
           variantId: variantId || undefined,
-          discountPercent: editingItem.discountPercent
+          discountPercent: editingItem.discountPercent,
+          limitQuantity: editingItem.limitQuantity
         })
       } else {
         form.resetFields()
@@ -158,7 +159,10 @@ const FlashSaleItemsModal = ({ open, onCancel, flashSaleId }: FlashSaleItemsModa
       if (editingItem) {
         updateMutation.mutate({ 
           id: editingItem._id, 
-          data: { discountPercent: values.discountPercent } 
+          data: { 
+            discountPercent: values.discountPercent,
+            limitQuantity: values.limitQuantity
+          } 
         })
       } else {
         // Kiểm tra trùng lặp variant
@@ -171,7 +175,8 @@ const FlashSaleItemsModal = ({ open, onCancel, flashSaleId }: FlashSaleItemsModa
           flashSaleId,
           productId: values.productId,
           variantId: values.variantId,
-          discountPercent: values.discountPercent
+          discountPercent: values.discountPercent,
+          limitQuantity: values.limitQuantity
         }
         
         createMutation.mutate(data)
@@ -221,6 +226,17 @@ const FlashSaleItemsModal = ({ open, onCancel, flashSaleId }: FlashSaleItemsModa
       title: 'Giảm giá (%)',
       dataIndex: 'discountPercent',
       key: 'discountPercent'
+    },
+    {
+      title: 'Số lượng giới hạn',
+      dataIndex: 'limitQuantity',
+      key: 'limitQuantity'
+    },
+    {
+      title: 'Đã bán',
+      dataIndex: 'soldQuantity',
+      key: 'soldQuantity',
+      render: (soldQuantity, record) => `${soldQuantity || 0}/${record.limitQuantity || 0}`
     },
     {
       title: 'Giá sau giảm',
@@ -428,6 +444,22 @@ const FlashSaleItemsModal = ({ open, onCancel, flashSaleId }: FlashSaleItemsModa
                 max={100}
                 style={{ width: '100%' }}
                 placeholder="Nhập phần trăm giảm giá"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="limitQuantity"
+              label="Số lượng giới hạn"
+              rules={[
+                { required: true, message: 'Vui lòng nhập số lượng giới hạn' },
+                { type: 'number', min: 1, message: 'Số lượng phải lớn hơn 0' }
+              ]}
+              help="Số lượng tối đa có thể bán với giá flash sale"
+            >
+              <InputNumber
+                min={1}
+                style={{ width: '100%' }}
+                placeholder="Nhập số lượng giới hạn"
               />
             </Form.Item>
           </Form>

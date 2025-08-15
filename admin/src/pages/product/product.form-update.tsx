@@ -39,7 +39,7 @@ interface IVariants {
 
 interface IProps {
   onSubmit?: (data: any) => void;
-  productData?: any; // Dữ liệu sản phẩm hiện có
+  productData?: any;
 }
 
 const ProductFormUpdate = (props: IProps) => {

@@ -1,15 +1,18 @@
 import { deleteProductAPI, fetchAllProducts } from '@/services/product-service/product.apis'
 import { PRODUCT_QUERY_KEYS } from '@/services/product-service/product.key'
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button, message, Popconfirm, Space, Table } from 'antd'
 import Search from 'antd/es/input/Search'
 import { useState } from 'react'
 import { Link } from 'react-router'
+import ProductDetailModal from './product-detail.modal'
 
 const ProductPage = () => {
   const [searchValue, setSearchValue] = useState('')
   const [pagination, setPagination] = useState<IPagination>({ current: 1, pageSize: 10, total: 10 })
+  const [selectedProduct, setSelectedProduct] = useState<IProduct | null>(null)
+  const [isModalVisible, setIsModalVisible] = useState(false)
   const queryClient = useQueryClient()
 
   const { data: listProducts, isLoading } = useQuery({
@@ -30,15 +33,13 @@ const ProductPage = () => {
     mutationFn: async (id: string) => {
       const res = await deleteProductAPI(id)
       if (res && res.data) {
-        message.success('Xóa sản phẩm thành công!')
         return res.data
       } else {
-        message.error('Xóa sản phẩm thất bại!')
+        throw new Error('Xóa sản phẩm thất bại!')
       }
     },
     onSuccess: () => {
       message.success('Xóa sản phẩm thành công!')
-      // Refetch the product list after deletion
       queryClient.invalidateQueries({ queryKey: [PRODUCT_QUERY_KEYS.FETCH_ALL] })
     },
     onError: () => {
@@ -48,6 +49,16 @@ const ProductPage = () => {
 
   const handleDelete = (id: string) => {
     deleteProductMutation.mutate(id)
+  }
+
+  const handleViewDetail = (product: IProduct) => {
+    setSelectedProduct(product)
+    setIsModalVisible(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false)
+    setSelectedProduct(null)
   }
 
   const columns = [
@@ -130,6 +141,11 @@ const ProductPage = () => {
       key: 'actions',
       render: (_: any, record: any) => (
         <Space size="middle">
+          <Button
+            icon={<EyeOutlined />}
+            className='text-green-600 border-green-600 hover:text-green-500 hover:border-green-500'
+            onClick={() => handleViewDetail(record)}
+          />
           <Link to={`/products/edit/${record._id}`}>
             <Button
               icon={<EditOutlined />}
@@ -186,6 +202,12 @@ const ProductPage = () => {
           showQuickJumper: true,
           showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} sản phẩm`
         }}
+      />
+      
+      <ProductDetailModal
+        visible={isModalVisible}
+        onClose={handleCloseModal}
+        product={selectedProduct}
       />
     </div>
   )

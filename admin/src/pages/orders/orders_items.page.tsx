@@ -18,20 +18,6 @@ const OrderPage = () => {
   const [messageApi, contextHolder] = message.useMessage()
   const queryClient = useQueryClient()
 
-  interface IProduct {
-  _id: string;
-  name: string;
-  slug: string;
-  price: number;
-  stock: number;
-  capacity: number;
-  image: string;
-  brandId: string;
-  categoryId: string;
-  discountId?: string;
-  description: string;
-}
-
   const { data  = [], isLoading, refetch } = useQuery({
     queryKey: [ORDER_KEYS.FETCH_ALL_ORDERS],
     queryFn: async () => {
@@ -338,11 +324,6 @@ const OrderPage = () => {
           >
             Làm mới
           </Button>
-          <Link to={`/orderitems/add`}>
-            <Button type="primary" icon={<PlusOutlined />}>
-              Thêm đơn hàng
-            </Button>
-          </Link>
         </div>
       </div>
 
