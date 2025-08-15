@@ -27,25 +27,32 @@ import MyOrders from '@/pages/order/order.pages'
 import OrderDetails from '@/pages/order/order.detail.pages'
 import OrderReviewPage from '@/pages/review/order-review.pages'
 import BrandDetailPage from '@/pages/brand/brand.detail.page'
+import CategoryDetailPage from '@/pages/category/category.detail.page'
 
 const Routers = () => {
   const isAuthenticated = useAppSelector((state) => state.auth.isSignin)
 
   return (
     <Routes>
-      <Route element={<PrivateRouters isAllowed={isAuthenticated ? true : false} redirectTo='/signin' />}>
-        <Route path='/' element={<LayoutPage />}>
-          <Route index element={<HomePage />} />
-          <Route path='shops' element={<ProductPage />} />
-          <Route path='shops/men' element={<ProductPage />} />
-          <Route path='shops/women' element={<ProductPage />} />
-          <Route path='shops/unisex' element={<ProductPage />} />
-          <Route path='blogs' element={<BlogPage />} />
-          <Route path='productDetail/:id' element={<ProductDetail />} />
-          <Route path='brand/:brandId' element={<BrandDetailPage />} />
+      {/* Public routes - không cần đăng nhập */}
+      <Route path='/' element={<LayoutPage />}>
+        <Route index element={<HomePage />} />
+        <Route path='shops' element={<ProductPage />} />
+        <Route path='shops/men' element={<ProductPage />} />
+        <Route path='shops/women' element={<ProductPage />} />
+        <Route path='shops/unisex' element={<ProductPage />} />
+        <Route path='blogs' element={<BlogPage />} />
+        <Route path='productDetail/:id' element={<ProductDetail />} />
+        <Route path='brand/:brandId' element={<BrandDetailPage />} />
+        <Route path='category/:categoryId' element={<CategoryDetailPage />} />
+        <Route path='contact' element={<ContactForm />} />
+        <Route path='blogs/:blogId' element={<BlogDetailPage />} />
+        <Route path='about' element={<AboutPage />} />
+        
+        {/* Private routes - cần đăng nhập */}
+        <Route element={<PrivateRouters isAllowed={isAuthenticated ? true : false} redirectTo='/signin' />}>
           <Route path='checkout' element={<CheckoutBilling />} />
-          <Route path='contact' element={<ContactForm />} />
-          <Route path='blogs/:blogId' element={<BlogDetailPage />} />
+          <Route path='cart' element={<CartPage />} />
           <Route path='account/:id' element={<LayoutAccountPage />}>
             <Route path='wishlist' element={<WishlistPage />} />
             <Route index element={<AccountPage />} />
@@ -54,11 +61,10 @@ const Routers = () => {
             <Route path='order/detail/:orderId' element={<OrderDetails />} />
           </Route>
           <Route path='review/order/:orderId' element={<OrderReviewPage />} />
-          <Route path='cart' element={<CartPage />} />
-          <Route path='about' element={<AboutPage />} />
         </Route>
       </Route>
       <Route path='payment/vnpay-return' element={<VNPayReturnPage />} />
+      {/* Auth routes - chỉ cho người chưa đăng nhập */}
       <Route element={<PrivateRouters isAllowed={isAuthenticated ? false : true} redirectTo='/' />}>
         <Route path='/signin' element={<SigninPage />} />
         <Route path='/signup' element={<SignupPage />} />

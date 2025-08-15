@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Minus, Plus, Trash2 } from 'lucide-react'
@@ -10,12 +10,15 @@ import { useAppSelector } from '@/redux/hooks'
 import { formatCurrencyVND } from '@/utils/utils'
 import { toast } from 'react-toastify'
 import DiscountInput from '@/components/DiscountInput'
+import { getFlashSaleProducts, checkFlashSaleLimit } from '@/services/flash-sale-service/flash-sale.apis'
+import { FLASH_SALE_KEYS } from '@/services/flash-sale-service/flash-sale.keys'
 
 export default function ShoppingCartPage() {
   const queryClient = useQueryClient()
   const [couponCode, setCouponCode] = useState('')
   const [appliedDiscount, setAppliedDiscount] = useState(null)
   const [selectedItems, setSelectedItems] = useState<string[]>([])
+  const [flashSaleInfo, setFlashSaleInfo] = useState<{[key: string]: any}>({})
   const navigate = useNavigate()
   const cartId = useAppSelector((state) => state.cart.IdCartUser)
 
@@ -48,6 +51,12 @@ export default function ShoppingCartPage() {
     }
   })
 
+  const { data: flashSaleProducts } = useQuery({
+    queryKey: [FLASH_SALE_KEYS.FETCH_ACTIVE_PRODUCTS],
+    queryFn: getFlashSaleProducts,
+    select: (res) => res && res.statusCode === 200 && res.data ? res.data : []
+  })
+
   const { data: listProductsCart } = useQuery({
     queryKey: [CART_KEYS.FETCH_LIST_CART],
     queryFn: async () => {
@@ -59,6 +68,40 @@ export default function ShoppingCartPage() {
       }
     }
   })
+
+  // Kiểm tra flash sale cho từng item trong giỏ hàng
+  useEffect(() => {
+    if (listProductsCart && flashSaleProducts) {
+      const checkFlashSaleForItems = async () => {
+        const flashSaleData: {[key: string]: any} = {}
+        
+        for (const item of listProductsCart) {
+          const flashSaleItem = flashSaleProducts.find((fs: any) => 
+            fs.productId._id === item.productId._id && 
+            fs.variantId?._id === item.variantId._id
+          )
+          
+          if (flashSaleItem) {
+            try {
+              const limitRes = await checkFlashSaleLimit(item.productId._id, item.variantId._id, item.quantity)
+              if (limitRes && limitRes.data) {
+                flashSaleData[item._id] = {
+                  ...flashSaleItem,
+                  limitInfo: limitRes.data
+                }
+              }
+            } catch (error) {
+              console.error('Error checking flash sale limit:', error)
+            }
+          }
+        }
+        
+        setFlashSaleInfo(flashSaleData)
+      }
+      
+      checkFlashSaleForItems()
+    }
+  }, [listProductsCart, flashSaleProducts])
 
   const updateQuantity = (id: string, newQuantity: number) => {
     if (newQuantity < 1) return
@@ -87,7 +130,17 @@ export default function ShoppingCartPage() {
 
   // Tính tổng chỉ cho sản phẩm đã chọn
   const selectedCartItems = cartItems.filter(item => selectedItems.includes(item._id))
-  const subtotal = selectedCartItems.reduce((sum: number, item: ICartItem) => sum + (item.variantId?.price || 0) * item.quantity, 0)
+  const subtotal = selectedCartItems.reduce((sum: number, item: ICartItem) => {
+    const flashSale = flashSaleInfo[item._id]
+    const originalPrice = item.variantId?.price || 0
+    
+    if (flashSale && item.quantity <= (flashSale.limitInfo?.remainingQuantity || 0)) {
+      const flashSalePrice = originalPrice * (1 - flashSale.discountPercent / 100)
+      return sum + flashSalePrice * item.quantity
+    } else {
+      return sum + originalPrice * item.quantity
+    }
+  }, 0)
   const shippingFee = selectedCartItems.length > 0 ? 30000 : 0 // Chỉ tính phí ship nếu có sản phẩm chọn
   const discountAmount = appliedDiscount?.discountAmount || 0
   const total = subtotal + shippingFee - discountAmount
@@ -155,7 +208,30 @@ export default function ShoppingCartPage() {
               </div>
 
               <div className="col-span-2">
-                <span className="font-medium text-[#333333]">{formatCurrencyVND(item.variantId?.price || 0)}</span>
+                {(() => {
+                  const flashSale = flashSaleInfo[item._id]
+                  const originalPrice = item.variantId?.price || 0
+                  
+                  if (flashSale && item.quantity <= (flashSale.limitInfo?.remainingQuantity || 0)) {
+                    const flashSalePrice = originalPrice * (1 - flashSale.discountPercent / 100)
+                    return (
+                      <div className="flex flex-col">
+                        <span className="font-medium text-red-600">{formatCurrencyVND(flashSalePrice)}</span>
+                        <span className="text-xs text-gray-500 line-through">{formatCurrencyVND(originalPrice)}</span>
+                        <span className="text-xs text-red-600">⚡ -{flashSale.discountPercent}%</span>
+                      </div>
+                    )
+                  } else {
+                    return (
+                      <div className="flex flex-col">
+                        <span className="font-medium text-[#333333]">{formatCurrencyVND(originalPrice)}</span>
+                        {flashSale && item.quantity > (flashSale.limitInfo?.remainingQuantity || 0) && (
+                          <span className="text-xs text-orange-600">⚠️ Vượt quá flash sale</span>
+                        )}
+                      </div>
+                    )
+                  }
+                })()}
               </div>
 
               <div className="col-span-2">
@@ -181,7 +257,17 @@ export default function ShoppingCartPage() {
               </div>
 
               <div className="col-span-2">
-                <span className="font-medium text-[#333333]">{formatCurrencyVND(item.variantId?.price * item.quantity)}</span>
+                {(() => {
+                  const flashSale = flashSaleInfo[item._id]
+                  const originalPrice = item.variantId?.price || 0
+                  
+                  if (flashSale && item.quantity <= (flashSale.limitInfo?.remainingQuantity || 0)) {
+                    const flashSalePrice = originalPrice * (1 - flashSale.discountPercent / 100)
+                    return <span className="font-medium text-red-600">{formatCurrencyVND(flashSalePrice * item.quantity)}</span>
+                  } else {
+                    return <span className="font-medium text-[#333333]">{formatCurrencyVND(originalPrice * item.quantity)}</span>
+                  }
+                })()}
               </div>
 
               <div className="col-span-2">

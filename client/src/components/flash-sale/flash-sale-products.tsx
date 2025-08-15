@@ -278,7 +278,7 @@ const FlashSaleProducts = () => {
             return (
               <SwiperSlide key={item._id}>
                 <motion.div
-                  className='bg-white rounded-xl border border-red-200 shadow-lg hover:shadow-xl transition p-4 flex flex-col group cursor-pointer relative overflow-hidden'
+                  className='bg-white rounded-xl border border-red-200 shadow-lg hover:shadow-xl transition p-4 flex flex-col group cursor-pointer relative overflow-hidden h-[400px]'
                   custom={idx}
                   initial='hidden'
                   whileInView='visible'
@@ -329,7 +329,7 @@ const FlashSaleProducts = () => {
 
                   <div className='flex-1 flex flex-col'>
                     <div
-                      className='font-bold text-lg mb-2 cursor-pointer text-center line-clamp-2 h-12 flex items-center justify-center'
+                      className='font-bold text-base mb-2 cursor-pointer text-center line-clamp-2 h-12 flex items-center justify-center'
                       dangerouslySetInnerHTML={{ __html: product.name || '' }}
                     />
 

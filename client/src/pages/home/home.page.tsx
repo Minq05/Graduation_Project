@@ -1,7 +1,7 @@
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Autoplay, Pagination, Navigation, EffectFade, EffectCoverflow } from 'swiper/modules'
 import { motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Star, ShoppingBag, Heart, TrendingUp, Award, Sparkles } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Star, ShoppingBag, Heart, TrendingUp, Award, Sparkles, Zap } from 'lucide-react'
 import { PRODUCT_KEYS } from '@/services/product-service/product.keys'
 import { useQuery } from '@tanstack/react-query'
 import { fetchListBrand, fetchListCategory, fetchListProduct } from '@/services/product-service/product.apis'
@@ -16,6 +16,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { REVIEW_QUERY_KEYS } from '@/services/review-service/review.keys'
 import { fetchAllReviews } from '@/services/review-service/review.apis'
 import FlashSaleProducts from '@/components/flash-sale/flash-sale-products'
+import { getFlashSaleProducts } from '@/services/flash-sale-service/flash-sale.apis'
+import { FLASH_SALE_KEYS } from '@/services/flash-sale-service/flash-sale.keys'
 import 'swiper/css/effect-coverflow'
 import 'swiper/css/effect-fade'
 import 'swiper/css/navigation'
@@ -27,7 +29,7 @@ interface Review {
   _id: string;
   userId: {
     _id: string;
-    name: string;
+    fullName: string;
     avatar?: string;
   };
   productId: {
@@ -203,6 +205,13 @@ const HomePage = () => {
     queryKey: [PRODUCT_KEYS.FETCH_LIST_PRODUCT],
     queryFn: () => fetchListProduct({}),
     select: (res) => res.data
+  })
+
+  // Flash sale products
+  const { data: flashSaleProducts } = useQuery({
+    queryKey: [FLASH_SALE_KEYS.FETCH_ACTIVE_PRODUCTS],
+    queryFn: getFlashSaleProducts,
+    select: (res) => res && res.statusCode === 200 && res.data ? res.data : []
   })
 
   // Thương hiệu
@@ -545,73 +554,109 @@ const HomePage = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 mb-8">
-          {featuredProducts.slice(0, 5).map((product: Product, idx: number) => (
-            <motion.div
-              key={product._id || idx}
-              className='bg-white rounded-xl border border-gray-100 shadow-lg hover:shadow-xl transition p-2 sm:p-3 flex flex-col group cursor-pointer relative overflow-hidden'
-              custom={idx}
-              initial='hidden'
-              whileInView='visible'
-              viewport={{ once: true }}
-              variants={fadeInUp}
-              whileHover={{ y: -5 }}
-              onClick={() => navigate(`/productDetail/${product._id}`)}
-            >
-              {/* Featured badge - smaller on mobile */}
-              <div className="absolute top-2 sm:top-3 right-2 sm:right-3 bg-indigo-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded z-10 flex items-center">
-                <Award size={10} className="mr-0.5 sm:mr-1" /> Nổi bật
-              </div>
-
-              <div className="relative overflow-hidden rounded-lg mb-2 sm:mb-3">
-                <img
-                  src={(() => {
-                    const img = product.img || product.image;
-                    if (Array.isArray(img)) return img[0] || 'https://images.unsplash.com/photo-1615368144592-35d25066b873?q=80&w=300';
-                    return img || 'https://images.unsplash.com/photo-1615368144592-35d25066b873?q=80&w=300';
-                  })()} 
-                  alt={product.name || 'Product'}
-                  className='w-full h-32 sm:h-40 md:h-48 object-cover group-hover:scale-110 transition-transform duration-500'
-                  onError={(e) => {
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1615368144592-35d25066b873?q=80&w=300';
-                  }}
-                />
-
-                {/* Quick action overlay */}
-                <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                  <button className="bg-white text-indigo-700 rounded-full p-1.5 sm:p-2 mx-1 hover:bg-indigo-700 hover:text-white transition-colors">
-                    <ShoppingBag size={14} className="sm:size-[18px]" />
-                  </button>
-                  <button className="bg-white text-indigo-700 rounded-full p-1.5 sm:p-2 mx-1 hover:bg-indigo-700 hover:text-white transition-colors">
-                    <Eye size={14} className="sm:size-[18px]" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex-1 flex flex-col">
-                <div
-                  className='font-bold text-sm sm:text-base mb-1 cursor-pointer line-clamp-2 h-10 sm:h-12'
-                  dangerouslySetInnerHTML={{ __html: product.name || '' }}
-                />
-
-                <div className='text-indigo-500 text-xs sm:text-sm mb-1 sm:mb-2 cursor-pointer line-clamp-1'>
-                  {product.brand || 'Thương hiệu cao cấp'}
-                </div>
-
-                <div className="flex items-center mb-1 sm:mb-2">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={12} className={i < 4 ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} />
-                  ))}
-                </div>
-
-                <div className="mt-auto">
-                  <div className='bg-indigo-50 rounded-lg px-2 sm:px-4 py-1 sm:py-2 font-bold text-xs sm:text-base text-indigo-700 group-hover:bg-indigo-600 group-hover:text-white transition text-center'>
-                    {typeof product.price === 'number' ? product.price.toLocaleString() : product.price}₫
+        <div className='bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-2xl'>
+          <Swiper
+            navigation={{
+              nextEl: '.custom-next-featured',
+              prevEl: '.custom-prev-featured'
+            }}
+            spaceBetween={16}
+            slidesPerView={2}
+            breakpoints={{
+              640: { slidesPerView: 3, spaceBetween: 20 },
+              1024: { slidesPerView: 4, spaceBetween: 24 },
+              1280: { slidesPerView: 5, spaceBetween: 24 }
+            }}
+            modules={[Navigation]}
+            className='featured-products-swiper relative'
+          >
+            {featuredProducts.slice(0, 10).map((product: Product, idx: number) => (
+              <SwiperSlide key={product._id || idx}>
+                <motion.div
+                  className='bg-white rounded-xl border border-gray-100 shadow-lg hover:shadow-xl transition p-2 sm:p-3 flex flex-col group cursor-pointer relative overflow-hidden h-full'
+                  custom={idx}
+                  initial='hidden'
+                  whileInView='visible'
+                  viewport={{ once: true }}
+                  variants={fadeInUp}
+                  whileHover={{ y: -5 }}
+                  onClick={() => navigate(`/productDetail/${product._id}`)}
+                >
+                  {/* Badges */}
+                  <div className="absolute top-2 sm:top-3 right-2 sm:right-3 z-10 flex flex-col gap-1">
+                    <div className="bg-indigo-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex items-center">
+                      <Award size={10} className="mr-0.5 sm:mr-1" /> Nổi bật
+                    </div>
+                    {(() => {
+                      const isOnSale = flashSaleProducts?.some((fs: any) => 
+                        fs.productId._id === product._id
+                      )
+                      return isOnSale ? (
+                        <div className="bg-red-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex items-center">
+                          <Zap size={10} className="mr-0.5 sm:mr-1" /> Sale
+                        </div>
+                      ) : null
+                    })()}
                   </div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+
+                  <div className="relative overflow-hidden rounded-lg mb-2 sm:mb-3">
+                    <img
+                      src={(() => {
+                        const img = product.img || product.image;
+                        if (Array.isArray(img)) return img[0] || 'https://images.unsplash.com/photo-1615368144592-35d25066b873?q=80&w=300';
+                        return img || 'https://images.unsplash.com/photo-1615368144592-35d25066b873?q=80&w=300';
+                      })()} 
+                      alt={product.name || 'Product'}
+                      className='w-full h-32 sm:h-40 md:h-48 object-cover group-hover:scale-110 transition-transform duration-500'
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1615368144592-35d25066b873?q=80&w=300';
+                      }}
+                    />
+
+                    {/* Quick action overlay */}
+                    <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                      <button className="bg-white text-indigo-700 rounded-full p-1.5 sm:p-2 mx-1 hover:bg-indigo-700 hover:text-white transition-colors">
+                        <ShoppingBag size={14} className="sm:size-[18px]" />
+                      </button>
+                      <button className="bg-white text-indigo-700 rounded-full p-1.5 sm:p-2 mx-1 hover:bg-indigo-700 hover:text-white transition-colors">
+                        <Eye size={14} className="sm:size-[18px]" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 flex flex-col">
+                    <div
+                      className='font-bold text-sm sm:text-base mb-1 cursor-pointer line-clamp-2 h-10 sm:h-12'
+                      dangerouslySetInnerHTML={{ __html: product.name || '' }}
+                    />
+
+                    <div className='text-indigo-500 text-xs sm:text-sm mb-1 sm:mb-2 cursor-pointer line-clamp-1'>
+                      {product.brand || 'Thương hiệu cao cấp'}
+                    </div>
+
+                    <div className="flex items-center mb-1 sm:mb-2">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} size={12} className={i < 4 ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} />
+                      ))}
+                    </div>
+
+                    <div className="mt-auto">
+                      <div className='bg-indigo-50 rounded-lg px-2 sm:px-4 py-1 sm:py-2 font-bold text-xs sm:text-base text-indigo-700 group-hover:bg-indigo-600 group-hover:text-white transition text-center'>
+                        {typeof product.price === 'number' ? product.price.toLocaleString() : product.price}₫
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </SwiperSlide>
+            ))}
+
+            <button className='custom-prev-featured absolute top-1/2 -left-4 z-10 bg-white shadow-lg rounded-full p-2.5 flex items-center justify-center hover:bg-indigo-100 transition border border-gray-100 active:scale-90'>
+              <ChevronLeft size={24} className='text-indigo-600' />
+            </button>
+            <button className='custom-next-featured absolute top-1/2 -right-4 z-10 bg-white shadow-lg rounded-full p-2.5 flex items-center justify-center hover:bg-indigo-100 transition border border-gray-100 active:scale-90'>
+              <ChevronRight size={24} className='text-indigo-600' />
+            </button>
+          </Swiper>
         </div>
 
 
@@ -645,7 +690,7 @@ const HomePage = () => {
             {reviews.length > 0 ? reviews.map((review: Review, idx: number) => (
               <SwiperSlide key={review._id}>
                 <motion.div
-                  className='bg-white rounded-xl border border-gray-100 shadow-lg hover:shadow-xl transition p-4 sm:p-6 flex flex-col group cursor-pointer relative'
+                  className='bg-white rounded-xl border border-gray-100 shadow-lg hover:shadow-xl transition p-4 sm:p-6 flex flex-col group cursor-pointer relative h-[200px]'
                   custom={idx}
                   initial='hidden'
                   whileInView='visible'
@@ -659,11 +704,11 @@ const HomePage = () => {
                   <div className='flex items-center mb-3 sm:mb-4'>
                     <div className='relative'>
                       <img
-                        src={review.userId?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(review.userId?.name || 'User')}&background=f43f5e&color=fff`}
-                        alt={review.userId?.name || 'User'}
+                        src={review.userId?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(review.userId?.fullName || 'User')}&background=f43f5e&color=fff`}
+                        alt={review.userId?.fullName || 'User'}
                         className='w-12 h-12 sm:w-16 sm:h-16 rounded-full border-3 sm:border-4 border-rose-100 group-hover:border-rose-300 transition object-cover'
                         onError={(e) => {
-                          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(review.userId?.name || 'User')}&background=f43f5e&color=fff`;
+                          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(review.userId?.fullName || 'User')}&background=f43f5e&color=fff`;
                         }}
                       />
                       <div className='absolute -bottom-1 -right-1 bg-rose-500 text-white rounded-full p-0.5 sm:p-1'>
@@ -671,7 +716,7 @@ const HomePage = () => {
                       </div>
                     </div>
                     <div className='ml-3 sm:ml-4'>
-                      <div className='font-bold text-base sm:text-lg'>{review.userId?.name || 'Khách hàng'}</div>
+                      <div className='font-bold text-base sm:text-lg'>{review.userId?.fullName || 'Khách hàng'}</div>
                       <div className='flex'>
                         {[...Array(5)].map((_, i) => (
                           <Star key={i} size={12} className={i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} />
@@ -680,7 +725,7 @@ const HomePage = () => {
                     </div>
                   </div>
 
-                  <div className='text-gray-600 text-sm sm:text-base italic mb-3 sm:mb-4 relative z-10 line-clamp-2'>
+                  <div className='text-gray-600 text-sm sm:text-base italic mb-3 sm:mb-4 relative z-10 line-clamp-3 flex-1'>
                     '{review.comment}'
                   </div>
 

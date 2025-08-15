@@ -16,7 +16,7 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 
 const formSchema = z.object({
-  email: z.string().email().min(2, {
+  email: z.string().email({ message: 'Email không hợp lệ.' }).min(2, {
     message: 'Email không được để trống.'
   }),
   password: z.string().min(6, {

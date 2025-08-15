@@ -55,6 +55,34 @@ const OrderDetails = () => {
       .filter(Boolean)
       .join(', ')
   }
+
+  const formatFreeAddress = (addressFree?: any) => {
+    if (!addressFree) return 'Không có địa chỉ'
+    return [addressFree.address, addressFree.ward, addressFree.district, addressFree.province]
+      .filter(Boolean)
+      .join(', ')
+  }
+
+  const getShippingAddress = () => {
+    if (order?.addressFree) {
+      return {
+        name: order.addressFree.receiverName || order.userId?.fullName,
+        phone: order.addressFree.receiverPhone || order.userId?.phone,
+        address: formatFreeAddress(order.addressFree)
+      }
+    } else if (order?.addressId) {
+      return {
+        name: order.userId?.fullName,
+        phone: order.userId?.phone,
+        address: formatFullAddress(order.addressId)
+      }
+    }
+    return {
+      name: 'Không có thông tin',
+      phone: 'Không có thông tin',
+      address: 'Không có địa chỉ'
+    }
+  }
   if (isLoading) {
     return (
       <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'>
@@ -191,11 +219,16 @@ const OrderDetails = () => {
                 <h2 className='text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4'>
                   <MapPin className='h-5 w-5 text-green-600' />
                   Địa chỉ giao hàng
+                  {order?.addressFree && (
+                    <Badge variant="outline" className="text-xs">
+                      Địa chỉ khác
+                    </Badge>
+                  )}
                 </h2>
                 <div className='bg-gray-50 rounded-lg p-4'>
-                  <p className='font-medium text-gray-900 mb-1'>{order.userId?.fullName}</p>
-                  <p className='text-sm text-gray-600 mb-2'>Số điện thoại: {order.userId?.phone}</p>
-                  <p className='text-sm text-gray-700'>{formatFullAddress(order.addressId)}</p>
+                  <p className='font-medium text-gray-900 mb-1'>{getShippingAddress().name}</p>
+                  <p className='text-sm text-gray-600 mb-2'>Số điện thoại: {getShippingAddress().phone}</p>
+                  <p className='text-sm text-gray-700'>{getShippingAddress().address}</p>
                 </div>
               </CardContent>
             </Card>

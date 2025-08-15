@@ -10,6 +10,8 @@ import { createAddressAPI, updateAddressAPI } from '@/services/user-service/user
 import { useAppSelector } from '@/redux/hooks'
 import { toast } from 'react-toastify'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { ProvinceSelector, DistrictSelector, WardSelector } from '@/components/address'
+import { useState, useEffect } from 'react'
 
 const formSchema = z.object({
   province: z.string().min(1, {
@@ -38,6 +40,11 @@ interface AddressFormProps {
 const AddressForm = ({ editingAddress, onSuccess, onCancel }: AddressFormProps) => {
   const userInfo = useAppSelector((state) => state.auth.user)
   const queryClient = useQueryClient()
+  const [provinceCode, setProvinceCode] = useState('')
+  const [districtCode, setDistrictCode] = useState('')
+  const [wardCode, setWardCode] = useState('')
+  const [isInitialized, setIsInitialized] = useState(false)
+  
   const form = useForm<AddressFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -48,6 +55,48 @@ const AddressForm = ({ editingAddress, onSuccess, onCancel }: AddressFormProps) 
       isPrimary: editingAddress?.isPrimary || false
     }
   })
+
+  // Tìm code từ tên địa chỉ khi edit
+  useEffect(() => {
+    const initializeEditData = async () => {
+      if (editingAddress && !isInitialized) {
+        try {
+          // Fetch provinces để tìm province code
+          const provincesRes = await fetch('https://provinces.open-api.vn/api/p/')
+          const provinces = await provincesRes.json()
+          const province = provinces.find((p: any) => p.name === editingAddress.province)
+          
+          if (province) {
+            setProvinceCode(province.code)
+            
+            // Fetch districts để tìm district code
+            const districtsRes = await fetch(`https://provinces.open-api.vn/api/p/${province.code}?depth=2`)
+            const provinceData = await districtsRes.json()
+            const district = provinceData.districts?.find((d: any) => d.name === editingAddress.district)
+            
+            if (district) {
+              setDistrictCode(district.code)
+              
+              // Fetch wards để tìm ward code
+              const wardsRes = await fetch(`https://provinces.open-api.vn/api/d/${district.code}?depth=2`)
+              const districtData = await wardsRes.json()
+              const ward = districtData.wards?.find((w: any) => w.name === editingAddress.ward)
+              
+              if (ward) {
+                setWardCode(ward.code)
+              }
+            }
+          }
+          setIsInitialized(true)
+        } catch (error) {
+          console.error('Error initializing edit data:', error)
+          setIsInitialized(true)
+        }
+      }
+    }
+    
+    initializeEditData()
+  }, [editingAddress, isInitialized])
 
   const createAddressMutation = useMutation({
     mutationFn: (data: AddressFormData) =>
@@ -95,7 +144,7 @@ const AddressForm = ({ editingAddress, onSuccess, onCancel }: AddressFormProps) 
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="province"
@@ -103,7 +152,19 @@ const AddressForm = ({ editingAddress, onSuccess, onCancel }: AddressFormProps) 
                   <FormItem>
                     <FormLabel>Tỉnh/Thành phố <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
-                      <Input placeholder="Hà Nội" {...field} />
+                      <ProvinceSelector
+                        value={provinceCode}
+                        onChange={(code, name) => {
+                          setProvinceCode(code)
+                          if (!editingAddress || isInitialized) {
+                            setDistrictCode('')
+                            setWardCode('')
+                            form.setValue('district', '')
+                            form.setValue('ward', '')
+                          }
+                          field.onChange(name)
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -117,27 +178,45 @@ const AddressForm = ({ editingAddress, onSuccess, onCancel }: AddressFormProps) 
                   <FormItem>
                     <FormLabel>Quận/Huyện <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
-                      <Input placeholder="Ba Đình" {...field} />
+                      <DistrictSelector
+                        provinceCode={provinceCode}
+                        value={districtCode}
+                        onChange={(code, name) => {
+                          setDistrictCode(code)
+                          if (!editingAddress || isInitialized) {
+                            setWardCode('')
+                            form.setValue('ward', '')
+                          }
+                          field.onChange(name)
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="ward"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phường/Xã <span className="text-red-500">*</span></FormLabel>
+                    <FormControl>
+                      <WardSelector
+                        districtCode={districtCode}
+                        value={wardCode}
+                        onChange={(code, name) => {
+                          setWardCode(code)
+                          field.onChange(name)
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-
-            <FormField
-              control={form.control}
-              name="ward"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phường/Xã <span className="text-red-500">*</span></FormLabel>
-                  <FormControl>
-                    <Input placeholder="Phúc Xa" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <FormField
               control={form.control}

@@ -4,8 +4,7 @@ import { fetchReviewsByProduct } from '@/services/review-service/review.apis';
 import { REVIEW_QUERY_KEYS } from '@/services/review-service/review.keys';
 import { Review } from '@/services/review-service/review.types';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Star, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import dayjs from 'dayjs';
 
 interface ReviewListProps {
@@ -149,14 +148,19 @@ const ReviewList = ({ productId }: ReviewListProps) => {
         </div>
       )}
       
-      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Xem ảnh</DialogTitle>
-          </DialogHeader>
-          <img src={previewImage} alt="preview" className="w-full" />
-        </DialogContent>
-      </Dialog>
+      {previewOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setPreviewOpen(false)}>
+          <div className="bg-white rounded-lg p-4 max-w-2xl max-h-[80vh] overflow-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Xem ảnh</h3>
+              <Button variant="ghost" size="sm" onClick={() => setPreviewOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <img src={previewImage} alt="preview" className="w-full" />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { ShoppingCartIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import '@/styles/product-detail.css'
 import ProductReviews from '@/components/review/product-reviews'
@@ -15,8 +15,9 @@ import { addToCartAPI } from '@/services/cart-service/cart.apis'
 import { CART_KEYS } from '@/services/cart-service/cart.keys'
 import { useAppSelector } from '@/redux/hooks'
 import { toast } from 'react-toastify'
-import { getFlashSaleProducts } from '@/services/flash-sale-service/flash-sale.apis'
+import { getFlashSaleProducts, checkFlashSaleLimit } from '@/services/flash-sale-service/flash-sale.apis'
 import { FLASH_SALE_KEYS } from '@/services/flash-sale-service/flash-sale.keys'
+import { useNavigate } from 'react-router'
 
 const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1)
@@ -29,9 +30,12 @@ const ProductDetail = () => {
   const [selectedImage, setSelectedImage] = useState<string>('')
   const [activeTab, setActiveTab] = useState<'description' | 'reviews'>('description')
   const [flashSaleInfo, setFlashSaleInfo] = useState<any>(null)
+  const [flashSaleLimit, setFlashSaleLimit] = useState<any>(null)
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const cartId = useAppSelector((state) => state.cart.IdCartUser)
+  const isSignin = useAppSelector((state) => state.auth.isSignin)
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: [PRODUCT_KEYS.FETCH_INFO_PRODUCT, id],
@@ -93,6 +97,22 @@ const ProductDetail = () => {
     }
   }, [product])
 
+  // Kiểm tra giới hạn flash sale
+  const checkFlashSaleLimitForQuantity = useCallback(async (qty: number) => {
+    if (product && selectedVariant && flashSaleInfo) {
+      try {
+        const res = await checkFlashSaleLimit(product._id, selectedVariant._id, qty)
+        if (res && res.data) {
+          setFlashSaleLimit(res.data)
+          return res.data
+        }
+      } catch (error) {
+        console.error('Error checking flash sale limit:', error)
+      }
+    }
+    return null
+  }, [product, selectedVariant, flashSaleInfo])
+
   useEffect(() => {
     if (capacity.length > 0 && !selectedScents) {
       setSelectedScents(capacity[0].id)
@@ -111,14 +131,22 @@ const ProductDetail = () => {
         console.log('Item product ID:', item.productId._id)
         console.log('Item variant ID:', item.variantId?._id)
         
-        // Chỉ cần khớp product ID vì variantId là object rỗng {}
-        return item.productId._id === product._id
+        // Kiểm tra khớp cả product ID và variant ID
+        const productMatch = item.productId._id === product._id
+        const variantMatch = item.variantId && item.variantId._id === selectedVariant._id
+        
+        return productMatch && variantMatch
       })
       
       console.log('Found Flash Sale Item:', flashSaleItem)
       setFlashSaleInfo(flashSaleItem || null)
+      
+      // Kiểm tra giới hạn nếu có flash sale
+      if (flashSaleItem && selectedVariant) {
+        checkFlashSaleLimitForQuantity(quantity)
+      }
     }
-  }, [product, flashSaleProducts, selectedVariant])
+  }, [product, flashSaleProducts, selectedVariant, checkFlashSaleLimitForQuantity, quantity])
 
   useEffect(() => {
     if (product && product.variants && selectedScents) {
@@ -172,6 +200,13 @@ const ProductDetail = () => {
   })
 
   const handleAddToCart = () => {
+    // Kiểm tra đăng nhập trước
+    if (!isSignin) {
+      toast.error('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng')
+      navigate('/signin')
+      return
+    }
+    
     if (product && product.variants && selectedScents) {
       if (selectedVariant) {
         // Kiểm tra tồn kho trước khi thêm vào giỏ hàng
@@ -287,13 +322,13 @@ const ProductDetail = () => {
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{product?.name}</h1>
               {/* Price */}
               <div className="flex items-center gap-3 mt-2">
-                {flashSaleInfo ? (
+                {flashSaleInfo && selectedVariant && quantity <= (flashSaleLimit?.remainingQuantity || 0) ? (
                   <>
                     <span className="text-2xl font-bold text-red-600">
-                      {formatCurrencyVND(selectedVariant?.price * (1 - flashSaleInfo.discountPercent / 100) || 0)}
+                      {formatCurrencyVND(selectedVariant.price * (1 - flashSaleInfo.discountPercent / 100))}
                     </span>
                     <span className="text-lg text-gray-500 line-through">
-                      {formatCurrencyVND(selectedVariant?.price || 0)}
+                      {formatCurrencyVND(selectedVariant.price)}
                     </span>
                     <span className="bg-red-500 text-white px-2 py-1 rounded text-sm font-medium">
                       -{flashSaleInfo.discountPercent}%
@@ -313,12 +348,20 @@ const ProductDetail = () => {
                 )}
               </div>
               
-              {flashSaleInfo && (
+              {flashSaleInfo && selectedVariant && (
                 <div className="mt-2 flex items-center gap-2">
-                  <span className="text-red-600 text-sm font-medium">⚡ Flash Sale</span>
-                  <span className="text-green-600 text-sm">
-                    Tiết kiệm {formatCurrencyVND((selectedVariant?.price || 0) * flashSaleInfo.discountPercent / 100)}
-                  </span>
+                  {quantity <= (flashSaleLimit?.remainingQuantity || 0) ? (
+                    <>
+                      <span className="text-red-600 text-sm font-medium">⚡ Flash Sale</span>
+                      <span className="text-green-600 text-sm">
+                        Tiết kiệm {formatCurrencyVND(selectedVariant.price * flashSaleInfo.discountPercent / 100)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-orange-600 text-sm font-medium">
+                      ⚠️ Vượt quá giới hạn flash sale - Áp dụng giá gốc
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -377,12 +420,23 @@ const ProductDetail = () => {
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium text-gray-900">Số lượng</span>
+                {flashSaleInfo && flashSaleLimit && (
+                  <span className="text-sm text-red-600">
+                    Flash Sale: Còn {flashSaleLimit.remainingQuantity}/{flashSaleLimit.limitQuantity}
+                  </span>
+                )}
               </div>
               <div className="flex items-center border rounded-md w-fit">
                 <button
                   type="button"
                   className="px-4 py-2 text-lg font-bold"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  onClick={async () => {
+                    const newQty = Math.max(1, quantity - 1)
+                    setQuantity(newQty)
+                    if (flashSaleInfo) {
+                      await checkFlashSaleLimitForQuantity(newQty)
+                    }
+                  }}
                   disabled={quantity <= 1}
                 >
                   -
@@ -391,12 +445,19 @@ const ProductDetail = () => {
                 <button
                   type="button"
                   className="px-4 py-2 text-lg font-bold"
-                  onClick={() => setQuantity(Math.min(currentStock, quantity + 1))}
+                  onClick={async () => {
+                    const newQty = Math.min(currentStock, quantity + 1)
+                    setQuantity(newQty)
+                    if (flashSaleInfo) {
+                      await checkFlashSaleLimitForQuantity(newQty)
+                    }
+                  }}
                   disabled={quantity >= currentStock}
                 >
                   +
                 </button>
               </div>
+
             </div>
 
             {/* Add to Cart */}
@@ -411,7 +472,8 @@ const ProductDetail = () => {
                 <ShoppingCartIcon className="w-5 h-5 mr-2" />
                 <span className="font-medium">
                   {addToCartMutation.isPending ? 'Đang thêm...' :
-                    currentStock <= 0 ? 'Hết hàng' : 'Thêm vào giỏ hàng'}
+                    currentStock <= 0 ? 'Hết hàng' : 
+                    !isSignin ? 'Đăng nhập để mua hàng' : 'Thêm vào giỏ hàng'}
                 </span>
               </Button>
             </div>

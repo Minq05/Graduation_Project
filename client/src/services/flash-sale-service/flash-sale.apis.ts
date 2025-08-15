@@ -56,3 +56,16 @@ export const getFlashSaleItems = async (flashSaleId: string, params?: { current?
     throw error
   }
 }
+
+// Kiểm tra giới hạn flash sale
+export const checkFlashSaleLimit = async (productId: string, variantId: string, quantity: number) => {
+  try {
+    const response = await axios.get('/api/v1/flashsales-item/check-limit', {
+      params: { productId, variantId, quantity }
+    })
+    return response
+  } catch (error) {
+    console.error('Error checking flash sale limit:', error)
+    throw error
+  }
+}

@@ -23,7 +23,12 @@ import PaymentLoading from '@/components/payment/payment-loading'
 import { useNavigate, useLocation } from 'react-router'
 import { USER_KEYS } from '@/services/user-service/user.keys'
 import DiscountInput from '@/components/DiscountInput'
-import { getShippingRateByProvince } from '@/services/shipping-service/shipping-rates'
+import { calculateShippingFee, getEstimatedDeliveryTime, type ShippingMethod } from '@/services/shipping-service/shipping-calculator'
+import { getFlashSaleProducts, checkFlashSaleLimit } from '@/services/flash-sale-service/flash-sale.apis'
+import { FLASH_SALE_KEYS } from '@/services/flash-sale-service/flash-sale.keys'
+import { ProvinceSelector } from '@/components/address/ProvinceSelector'
+import { DistrictSelector } from '@/components/address/DistrictSelector'
+import { WardSelector } from '@/components/address/WardSelector'
 
 
 const formSchema = z.object({
@@ -59,14 +64,24 @@ const CheckoutForm = () => {
     province: '',
     district: '',
     ward: '',
-    address: ''
+    address: '',
+    provinceCode: '',
+    districtCode: '',
+    wardCode: ''
   })
   const [selectedCartItems, setSelectedCartItems] = useState<any[]>([])
+  const [flashSaleInfo, setFlashSaleInfo] = useState<{[key: string]: any}>({})
   const cartId = useAppSelector((state) => state.cart.IdCartUser)
   const userId = useAppSelector((state) => state.auth.user?._id)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const location = useLocation()
+
+  const { data: flashSaleProducts } = useQuery({
+    queryKey: [FLASH_SALE_KEYS.FETCH_ACTIVE_PRODUCTS],
+    queryFn: getFlashSaleProducts,
+    select: (res) => res && res.statusCode === 200 && res.data ? res.data : []
+  })
 
   // Lấy sản phẩm đã chọn từ trang cart
   useEffect(() => {
@@ -77,6 +92,40 @@ const CheckoutForm = () => {
       setAppliedDiscount(location.state.appliedDiscount)
     }
   }, [location.state])
+
+  // Kiểm tra flash sale cho từng item
+  useEffect(() => {
+    if (selectedCartItems.length > 0 && flashSaleProducts) {
+      const checkFlashSaleForItems = async () => {
+        const flashSaleData: {[key: string]: any} = {}
+        
+        for (const item of selectedCartItems) {
+          const flashSaleItem = flashSaleProducts.find((fs: any) => 
+            fs.productId._id === item.productId._id && 
+            fs.variantId?._id === item.variantId._id
+          )
+          
+          if (flashSaleItem) {
+            try {
+              const limitRes = await checkFlashSaleLimit(item.productId._id, item.variantId._id, item.quantity)
+              if (limitRes && limitRes.data) {
+                flashSaleData[item._id] = {
+                  ...flashSaleItem,
+                  limitInfo: limitRes.data
+                }
+              }
+            } catch (error) {
+              console.error('Error checking flash sale limit:', error)
+            }
+          }
+        }
+        
+        setFlashSaleInfo(flashSaleData)
+      }
+      
+      checkFlashSaleForItems()
+    }
+  }, [selectedCartItems, flashSaleProducts])
 
   const { data: listAddresses } = useQuery({
     queryKey: [USER_KEYS.FETCH_ALL_ADDRESS_BY_USER, userId],
@@ -132,7 +181,17 @@ const CheckoutForm = () => {
       await removeOrderedItems()
       queryClient.invalidateQueries({ queryKey: [CART_KEYS.FETCH_LIST_CART] })
 
-      const subtotal = selectedCartItems?.reduce((acc, item) => acc + (item.variantId?.price * item.quantity), 0) || 0
+      const subtotal = selectedCartItems?.reduce((acc, item) => {
+        const flashSale = flashSaleInfo[item._id]
+        const originalPrice = item.variantId?.price || 0
+        
+        if (flashSale && item.quantity <= (flashSale.limitInfo?.remainingQuantity || 0)) {
+          const flashSalePrice = originalPrice * (1 - flashSale.discountPercent / 100)
+          return acc + flashSalePrice * item.quantity
+        } else {
+          return acc + originalPrice * item.quantity
+        }
+      }, 0) || 0
       const shippingPrice = getShippingFee()
       const discountAmount = appliedDiscount?.discountAmount || 0
       const calculatedTotalPrice = subtotal + shippingPrice - discountAmount
@@ -184,16 +243,27 @@ const CheckoutForm = () => {
     }
   })
 
+  // Helper function to get current province name for shipping calculation
+  const getProvinceName = () => {
+    if (shippingAddress === 'same' && selectedAddress) {
+      return selectedAddress.province
+    } else if (shippingAddress === 'different' && addressFormData.province) {
+      return addressFormData.province
+    }
+    return ''
+  }
+
 
   const handleSubmitAddress = (values: z.infer<typeof formSchema>) => {
-    setAddressFormData({
+    setAddressFormData(prev => ({
+      ...prev,
       receiverName: values.receiverName,
       receiverPhone: values.receiverPhone,
       province: values.province,
       district: values.district,
       ward: values.ward,
       address: values.address
-    })
+    }))
     toast.success('Địa chỉ đã được lưu thành công!')
   }
 
@@ -226,7 +296,17 @@ const CheckoutForm = () => {
 
     const currentAddressData = shippingAddress === 'different' ? form.getValues() : null
 
-    const subtotal = selectedCartItems?.reduce((acc, item) => acc + (item.variantId?.price * item.quantity), 0) || 0
+    const subtotal = selectedCartItems?.reduce((acc, item) => {
+      const flashSale = flashSaleInfo[item._id]
+      const originalPrice = item.variantId?.price || 0
+      
+      if (flashSale && item.quantity <= (flashSale.limitInfo?.remainingQuantity || 0)) {
+        const flashSalePrice = originalPrice * (1 - flashSale.discountPercent / 100)
+        return acc + flashSalePrice * item.quantity
+      } else {
+        return acc + originalPrice * item.quantity
+      }
+    }, 0) || 0
     const shippingPrice = getShippingFee()
     const discountAmount = appliedDiscount?.discountAmount || 0
     const totalPrice = subtotal + shippingPrice - discountAmount
@@ -256,7 +336,16 @@ const CheckoutForm = () => {
         productId: item.productId?._id,
         variantId: item.variantId?._id,
         quantity: item.quantity,
-        price: item.variantId?.price
+        price: (() => {
+          const flashSale = flashSaleInfo[item._id]
+          const originalPrice = item.variantId?.price || 0
+          
+          if (flashSale && item.quantity <= (flashSale.limitInfo?.remainingQuantity || 0)) {
+            return originalPrice * (1 - flashSale.discountPercent / 100)
+          } else {
+            return originalPrice
+          }
+        })()
       }))
     }
 
@@ -264,7 +353,17 @@ const CheckoutForm = () => {
   }
 
   // Tính toán tổng tiền
-  const subtotal = selectedCartItems?.reduce((acc, item) => acc + (item.variantId?.price * item.quantity), 0) || 0
+  const subtotal = selectedCartItems?.reduce((acc, item) => {
+    const flashSale = flashSaleInfo[item._id]
+    const originalPrice = item.variantId?.price || 0
+    
+    if (flashSale && item.quantity <= (flashSale.limitInfo?.remainingQuantity || 0)) {
+      const flashSalePrice = originalPrice * (1 - flashSale.discountPercent / 100)
+      return acc + flashSalePrice * item.quantity
+    } else {
+      return acc + originalPrice * item.quantity
+    }
+  }, 0) || 0
   const getShippingFee = () => {
     if (selectedCartItems?.length === 0) return 0;
     
@@ -277,22 +376,17 @@ const CheckoutForm = () => {
       provinceName = addressFormData.province;
     }
     
-    // Nếu có tỉnh thành, tính phí vận chuyển dựa trên khoảng cách
+    // Nếu có tỉnh thành, tính phí vận chuyển dựa trên tỉnh thành
     if (provinceName) {
       try {
-        return getShippingRateByProvince(provinceName, shippingMethod);
+        return calculateShippingFee(provinceName, shippingMethod as ShippingMethod);
       } catch (error) {
         console.error('Error calculating shipping fee:', error);
       }
     }
     
     // Giá mặc định nếu không có tỉnh thành hoặc có lỗi
-    switch (shippingMethod) {
-      case 'standard': return 30000;
-      case 'express-ghn': return 45000;
-      case 'express': return 60000;
-      default: return 30000;
-    }
+    return calculateShippingFee('', shippingMethod as ShippingMethod);
   }
   
   // Kiểm tra xem phương thức vận chuyển có cần tạo vận đơn không
@@ -339,7 +433,27 @@ const CheckoutForm = () => {
                       </h3>
                       <p className='text-sm text-gray-500'>Dung tích: {item.value} ml | Mã: {item.variantId?.sku}</p>
                     </div>
-                    <div className='text-sm font-medium text-gray-900'>{formatCurrencyVND(item.variantId?.price * item.quantity)}</div>
+                    <div className='text-sm font-medium text-gray-900'>
+                      {(() => {
+                        const flashSale = flashSaleInfo[item._id]
+                        const originalPrice = item.variantId?.price || 0
+                        
+                        if (flashSale && item.quantity <= (flashSale.limitInfo?.remainingQuantity || 0)) {
+                          const flashSalePrice = originalPrice * (1 - flashSale.discountPercent / 100)
+                          return (
+                            <div className='flex flex-col items-end'>
+                              <span className='text-red-600 font-semibold'>{formatCurrencyVND(flashSalePrice * item.quantity)}</span>
+                              <span className='text-xs text-gray-500 line-through'>{formatCurrencyVND(originalPrice * item.quantity)}</span>
+                              <span className='text-xs text-red-600'>⚡ -{flashSale.discountPercent}%</span>
+                            </div>
+                          )
+                        } else {
+                          return (
+                            <span className='font-semibold'>{formatCurrencyVND(originalPrice * item.quantity)}</span>
+                          )
+                        }
+                      })()}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -467,46 +581,89 @@ const CheckoutForm = () => {
                                   )}
                                 />
                               </div>
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <FormField
-                                  control={form.control}
-                                  name="province"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Tỉnh/Thành phố</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder="Nhập tỉnh/thành phố" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={form.control}
-                                  name="district"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Quận/Huyện</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder="Nhập quận/huyện" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={form.control}
-                                  name="ward"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Phường/Xã</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder="Nhập phường/xã" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  <FormField
+                                    control={form.control}
+                                    name="province"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Tỉnh/Thành phố</FormLabel>
+                                        <FormControl>
+                                          <ProvinceSelector
+                                            value={addressFormData.provinceCode}
+                                            onChange={(code, name) => {
+                                              field.onChange(name)
+                                              setAddressFormData(prev => ({ 
+                                                ...prev, 
+                                                province: name, 
+                                                provinceCode: code,
+                                                district: '',
+                                                districtCode: '',
+                                                ward: '',
+                                                wardCode: ''
+                                              }))
+                                              form.setValue('district', '')
+                                              form.setValue('ward', '')
+                                            }}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name="district"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Quận/Huyện</FormLabel>
+                                        <FormControl>
+                                          <DistrictSelector
+                                            provinceCode={addressFormData.provinceCode}
+                                            value={addressFormData.districtCode}
+                                            onChange={(code, name) => {
+                                              field.onChange(name)
+                                              setAddressFormData(prev => ({ 
+                                                ...prev, 
+                                                district: name, 
+                                                districtCode: code,
+                                                ward: '',
+                                                wardCode: ''
+                                              }))
+                                              form.setValue('ward', '')
+                                            }}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name="ward"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Phường/Xã</FormLabel>
+                                        <FormControl>
+                                          <WardSelector
+                                            districtCode={addressFormData.districtCode}
+                                            value={addressFormData.wardCode}
+                                            onChange={(code, name) => {
+                                              field.onChange(name)
+                                              setAddressFormData(prev => ({ 
+                                                ...prev, 
+                                                ward: name, 
+                                                wardCode: code
+                                              }))
+                                            }}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
                               </div>
                               <FormField
                                 control={form.control}
@@ -521,21 +678,7 @@ const CheckoutForm = () => {
                                   </FormItem>
                                 )}
                               />
-                              <Button
-                                type="button"
-                                className='cursor-pointer'
-                                onClick={() => {
-                                  form.trigger().then(isValid => {
-                                    if (isValid) {
-                                      const values = form.getValues()
-                                      setAddressFormData(values)
-                                      toast.success('Địa chỉ đã được lưu thành công!')
-                                    }
-                                  })
-                                }}
-                              >
-                                Lưu
-                              </Button>
+
                             </div>
                           </Form>
                         )
@@ -564,9 +707,15 @@ const CheckoutForm = () => {
                               <SelectValue placeholder="Chọn phương thức vận chuyển" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="standard">Giao hàng tiêu chuẩn (2-3 ngày) - {formatCurrencyVND(getShippingFee())}</SelectItem>
-                              <SelectItem value="express-ghn">Giao hàng nhanh - GHN (1-2 ngày) - {formatCurrencyVND(shippingMethod === 'express-ghn' ? getShippingFee() : Math.round(getShippingFee() * 1.5))}</SelectItem>
-                              <SelectItem value="express">Giao hàng hỏa tốc (24h) - {formatCurrencyVND(shippingMethod === 'express' ? getShippingFee() : Math.round(getShippingFee() * 2))}</SelectItem>
+                              <SelectItem value="standard">
+                                Giao hàng tiêu chuẩn ({getEstimatedDeliveryTime(getProvinceName(), 'standard')}) - {formatCurrencyVND(calculateShippingFee(getProvinceName(), 'standard'))}
+                              </SelectItem>
+                              <SelectItem value="express-ghn">
+                                Giao hàng nhanh - GHN ({getEstimatedDeliveryTime(getProvinceName(), 'express-ghn')}) - {formatCurrencyVND(calculateShippingFee(getProvinceName(), 'express-ghn'))}
+                              </SelectItem>
+                              <SelectItem value="express">
+                                Giao hàng hỏa tốc ({getEstimatedDeliveryTime(getProvinceName(), 'express')}) - {formatCurrencyVND(calculateShippingFee(getProvinceName(), 'express'))}
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>

@@ -1,11 +1,14 @@
 import axiosInstance from '@/config/axios.customize';
+import axios from 'axios';
 
 // Lấy tất cả đánh giá (cho trang chủ) - chỉ lấy đánh giá đã approved
 export const fetchAllReviews = async (params?: string) => {
   try {
-    const url = params ? `/api/v1/reviews?${params}` : '/api/v1/reviews?status=approved';
-    const response = await axiosInstance.get(url);
-    return response || {
+    // Sử dụng axios thông thường thay vì axiosInstance để không gửi token
+    const baseURL = 'http://localhost:8080';
+    const url = params ? `${baseURL}/api/v1/reviews/public?${params}` : `${baseURL}/api/v1/reviews/public?limit=10&sort=-createdAt`;
+    const response = await axios.get(url);
+    return response.data || {
       statusCode: 200,
       success: true,
       data: {

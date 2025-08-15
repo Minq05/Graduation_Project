@@ -24,6 +24,10 @@ export interface ICartItem {
   value: string
   cartId: string
   quantity: number
+  price?: number
+  originalPrice?: number
+  hasFlashSale?: boolean
+  discountPercent?: number
 }
 
 export const createCartAPI = async (userId: string) => {

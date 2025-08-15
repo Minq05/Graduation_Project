@@ -26,3 +26,8 @@ export const fetchBrandById = async (id: string) => {
   const response = await axios.get(`/api/v1/brand/${id}`)
   return response
 }
+
+export const fetchCategoryById = async (id: string) => {
+  const response = await axios.get(`/api/v1/categories/${id}`)
+  return response
+}
